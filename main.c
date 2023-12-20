@@ -8,11 +8,10 @@
 #include "snake.h"
 #include "food.h"
 
-#define DEBUG
+//#define DEBUG
 
 void initGameInfo() {
     gameInfo.state = PREGAME;
-    gameInfo.rst = -1;
     gameInfo.nodeLength = 0;
 #ifdef DEBUG
     gameInfo.randSeed = 1;
@@ -28,7 +27,7 @@ void initGameInfo() {
 void clearGraphBuffer() {
     for (int i = 0; i < MAP_SIZE; ++i) {
         for (int j = 0; j < MAP_SIZE; ++j) {
-            gameGraph[i][j] = ' ';
+            gameGraph[i][j] = '_';
         }
     }
 }
@@ -51,14 +50,19 @@ void showGraph() {
         for (int j = 0; j < MAP_SIZE; ++j) {
             printf("%c", gameGraph[i][j]);
         }
-        printf("\n");
+        printf("|\n");
     }
+    for (int i = 0; i < MAP_SIZE; ++i) {
+        printf("-");
+    }
+    printf("+\n");
 }
 
 /**
  * 显示游戏开始前的提示语
  * */
 void showPregameMessage() {
+    system("cls");
     printf("%s", preGameGraph);
     printf("%s", tutorial);
 }
@@ -80,8 +84,10 @@ void flickerLine() {
  * 显示一行波纹
  * */
 void wave() {
-    static char right[27] = {'>','>','>','-','-','-','>','>','>','-','-','-','>','>','>','-','-','-','>','>','>','-','-','-','>','>','>'};
-    static char left[27] = {'<','<','<','-','-','-','<','<','<','-','-','-','<','<','<','-','-','-','<','<','<','-','-','-','<','<','<'};
+    static char right[27] = {'>', '>', '>', '-', '-', '-', '>', '>', '>', '-', '-', '-', '>', '>', '>', '-', '-', '-',
+                             '>', '>', '>', '-', '-', '-', '>', '>', '>'};
+    static char left[27] = {'<', '<', '<', '-', '-', '-', '<', '<', '<', '-', '-', '-', '<', '<', '<', '-', '-', '-',
+                            '<', '<', '<', '-', '-', '-', '<', '<', '<'};
     char leftFirst = left[0];
     char rightLast = right[26];
     for (int i = 0; i < 26; ++i) {
@@ -144,8 +150,8 @@ void handleFoodEat() {
 void handleCrossBorder() {
     int x = head.loc.x;
     int y = head.loc.y;
-    if (0 <= x && x <= MAP_SIZE) {
-        if (0 <= y && y <= MAP_SIZE) {
+    if (0 <= x && x < MAP_SIZE) {
+        if (0 <= y && y < MAP_SIZE) {
             return;
         }
     }
@@ -172,6 +178,9 @@ void update() {
     handleCrossBorder();
     handleEatSelf();
     handleFoodEat();
+    if (gameInfo.state != GAMING) { // 游戏结束则不再显示界面
+        return;
+    }
     clearGraphBuffer();
     updateGraphBuffer();
     showGraph();
@@ -238,10 +247,17 @@ void handleInput() {
 void showGameRst() {
     system("cls");
     printf("%s", gameOverGraph);
-    printf("Your Score Is %d, press Space to quit.", gameInfo.nodeLength);
-    while (getch() != ' '); // 空格结束游戏
+    printf("Your Score Is %d, press Space to quit, press R to restart.", gameInfo.nodeLength);
+    int ch;
+    while ((ch = getch()) != ' ' && ch != 'r'); // 空格结束游戏
+    if (ch == 'r') { // 按r重新游戏
+        gameInfo.state = WAIT_FOR_RESTART;
+    }
 }
 
+/**
+ * 进行游戏主体内容, 返回值为是否重新游戏
+ * */
 void gameLoop() {
     initGameInfo();
     showPregameMessage();
@@ -264,5 +280,7 @@ void gameLoop() {
 }
 
 int main() {
-    gameLoop();
+    do {
+        gameLoop();
+    } while (gameInfo.state == WAIT_FOR_RESTART);
 }
